@@ -1,0 +1,158 @@
+{
+  "info": {
+    "name": "Messenger Lab 2",
+    "_postman_id": "messenger-lab-2",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "baseUrl", "value": "http://127.0.0.1:8000" },
+    { "key": "aliceId", "value": "" },
+    { "key": "bobId", "value": "" },
+    { "key": "convId", "value": "" },
+    { "key": "messageId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "Create user Alice",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/users",
+        "body": { "mode": "raw", "raw": "{\"name\": \"Alice\"}" }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('201', () => pm.expect(pm.response.code).to.eql(201));",
+          "pm.collectionVariables.set('aliceId', pm.response.json().id);"
+        ]}
+      }]
+    },
+    {
+      "name": "Create user Bob",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/users",
+        "body": { "mode": "raw", "raw": "{\"name\": \"Bob\"}" }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('201', () => pm.expect(pm.response.code).to.eql(201));",
+          "pm.collectionVariables.set('bobId', pm.response.json().id);"
+        ]}
+      }]
+    },
+    {
+      "name": "Create direct conversation",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/conversations",
+        "body": { "mode": "raw",
+          "raw": "{\"participantIds\": [\"{{aliceId}}\", \"{{bobId}}\"]}" }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('201', () => pm.expect(pm.response.code).to.eql(201));",
+          "pm.collectionVariables.set('convId', pm.response.json().id);"
+        ]}
+      }]
+    },
+    {
+      "name": "Send message",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/messages",
+        "body": { "mode": "raw",
+          "raw": "{\"conversationId\": \"{{convId}}\", \"senderId\": \"{{aliceId}}\", \"text\": \"Hello Bob\"}" }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('201', () => pm.expect(pm.response.code).to.eql(201));",
+          "pm.collectionVariables.set('messageId', pm.response.json().id);"
+        ]}
+      }]
+    },
+    {
+      "name": "Get conversation history",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/conversations/{{convId}}/messages"
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('200', () => pm.expect(pm.response.code).to.eql(200));",
+          "pm.test('has at least one message', () => pm.expect(pm.response.json().messages.length).to.be.greaterThan(0));"
+        ]}
+      }]
+    },
+    {
+      "name": "Search messages",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/messages/search?q=hello"
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('200', () => pm.expect(pm.response.code).to.eql(200));",
+          "pm.test('found at least one result', () => pm.expect(pm.response.json().total).to.be.greaterThan(0));"
+        ]}
+      }]
+    },
+    {
+      "name": "Error: send to unknown user (404)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/messages",
+        "body": { "mode": "raw",
+          "raw": "{\"conversationId\": \"{{convId}}\", \"senderId\": \"ghost\", \"text\": \"hi\"}" }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('404', () => pm.expect(pm.response.code).to.eql(404));",
+          "pm.test('user_not_found', () => pm.expect(pm.response.json().error).to.eql('user_not_found'));"
+        ]}
+      }]
+    },
+    {
+      "name": "Error: empty message (400)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "url": "{{baseUrl}}/messages",
+        "body": { "mode": "raw",
+          "raw": "{\"conversationId\": \"{{convId}}\", \"senderId\": \"{{aliceId}}\", \"text\": \"   \"}" }
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('400', () => pm.expect(pm.response.code).to.eql(400));",
+          "pm.test('empty_message', () => pm.expect(pm.response.json().error).to.eql('empty_message'));"
+        ]}
+      }]
+    },
+    {
+      "name": "Error: short search query (400)",
+      "request": {
+        "method": "GET",
+        "url": "{{baseUrl}}/messages/search?q=a"
+      },
+      "event": [{
+        "listen": "test",
+        "script": { "exec": [
+          "pm.test('400', () => pm.expect(pm.response.code).to.eql(400));",
+          "pm.test('invalid_search_query', () => pm.expect(pm.response.json().error).to.eql('invalid_search_query'));"
+        ]}
+      }]
+    }
+  ]
+}

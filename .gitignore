@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+messenger.log
+.coverage
+htmlcov/
+.vscode/
+.idea/
